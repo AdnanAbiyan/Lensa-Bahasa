@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lensa Bahasa — Deteksi Bias & Framing Berita</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400;1,700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ===== VARIABLES ===== */
+:root {
+  --bg:       #07090f;
+  --bg2:      #0d1120;
+  --bg3:      #131a2e;
+  --bgcard:   #0f1523;
+  --amber:    #f5a623;
+  --amberL:   #ffc84a;
+  --amberDim: rgba(245,166,35,.12);
+  --amberGlo: rgba(245,166,35,.30);
+  --red:      #e53935;
+  --redBg:    rgba(229,57,53,.13);
+  --yel:      #fdd835;
+  --yelBg:    rgba(253,216,53,.13);
+  --grn:      #66bb6a;
+  --grnBg:    rgba(102,187,106,.12);
+  --blu:      #42a5f5;
+  --wht:      #eef2ff;
+  --whtD:     rgba(238,242,255,.68);
+  --gry:      #6b7898;
+  --bdr:      rgba(245,166,35,.14);
+  --bdrL:     rgba(255,255,255,.07);
+  --r:        12px;
+  --rs:       8px;
+  --sh:       0 24px 64px rgba(0,0,0,.55);
+  --ff:       'DM Sans', sans-serif;
+  --fd:       'Playfair Display', Georgia, serif;
+  --fm:       'DM Mono', monospace;
+}
+
+/* ===== RESET ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--ff);background:var(--bg);color:var(--wht);line-height:1.6;overflow-x:hidden}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--amber);border-radius:3px}
+
+/* noise */
+body::after{content:'';position:fixed;inset:0;
+  background:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:9000;opacity:.5}
+
+/* ===== NAVBAR ===== */
+nav{position:fixed;top:0;left:0;right:0;z-index:8000;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 1.75rem;height:62px;
+  background:rgba(7,9,15,.88);backdrop-filter:blur(22px);
+  border-bottom:1px solid var(--bdr)}
+
+.nav-brand{display:flex;align-items:center;gap:10px;cursor:pointer;text-decoration:none}
+.nav-icon{width:34px;height:34px;background:var(--amber);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;font-size:17px}
+.nav-name{font-family:var(--fd);font-size:1.2rem;font-weight:700}
+.nav-name em{color:var(--amber);font-style:normal}
+
+.nav-links{display:flex;list-style:none;gap:.2rem}
+.nav-links a{display:block;padding:.45rem .9rem;border-radius:var(--rs);
+  color:var(--whtD);font-size:.85rem;font-weight:500;cursor:pointer;
+  transition:all .18s;text-decoration:none;border:1px solid transparent}
+.nav-links a:hover,.nav-links a.on{color:var(--amber);background:var(--amberDim);border-color:var(--bdr)}
+
+.nav-key-btn{display:flex;align-items:center;gap:7px;
+  padding:.45rem 1rem;border:1px solid var(--bdrL);border-radius:var(--rs);
+  background:transparent;color:var(--whtD);font-family:var(--ff);font-size:.82rem;
+  cursor:pointer;transition:all .18s;white-space:nowrap}
+.nav-key-btn:hover{border-color:var(--amber);color:var(--amber)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--gry);transition:background .2s}
+.dot.ok{background:var(--grn);box-shadow:0 0 7px var(--grn)}
+
+.ham{display:none;background:none;border:1px solid var(--bdrL);border-radius:var(--rs);
+  padding:.45rem;color:var(--wht);cursor:pointer;font-size:1.1rem;line-height:1}
+
+/* ===== SECTIONS ===== */
+.pg{display:none;min-height:100vh;padding-top:62px}
+.pg.on{display:block}
+#home.on{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:5rem 1.5rem 3rem;text-align:center;position:relative;overflow:hidden}
+
+/* ===== HOME ===== */
+.home-glow{position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 55% at 50% 15%,rgba(245,166,35,.09),transparent 62%),
+             radial-gradient(ellipse 40% 40% at 80% 80%,rgba(229,57,53,.06),transparent 60%);
+  pointer-events:none}
+.home-grid{position:absolute;inset:0;
+  background-image:linear-gradient(rgba(245,166,35,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(245,166,35,.04) 1px,transparent 1px);
+  background-size:58px 58px;
+  mask-image:radial-gradient(ellipse 85% 85% at 50% 50%,black 25%,transparent 70%)}
+
+.badge{display:inline-flex;align-items:center;gap:7px;
+  padding:5px 14px;border:1px solid var(--bdr);border-radius:99px;
+  font-size:.78rem;color:var(--amber);background:var(--amberDim);margin-bottom:1.75rem;
+  animation:up .6s ease both}
+.h1{font-family:var(--fd);font-size:clamp(3rem,9vw,7.5rem);font-weight:900;
+  line-height:.95;letter-spacing:-.025em;margin-bottom:1.25rem;
+  animation:up .6s .1s ease both;position:relative}
+.h1 em{color:var(--amber);font-style:italic}
+.tagline{font-size:clamp(.95rem,2vw,1.2rem);color:var(--whtD);max-width:540px;
+  font-weight:300;margin-bottom:2.25rem;animation:up .6s .2s ease both}
+.home-cta{display:flex;gap:.85rem;flex-wrap:wrap;justify-content:center;
+  animation:up .6s .3s ease both}
+
+.btn{display:inline-flex;align-items:center;gap:8px;padding:.8rem 1.75rem;
+  border-radius:9px;font-family:var(--ff);font-size:.9rem;font-weight:600;
+  cursor:pointer;transition:all .2s;text-decoration:none;border:none}
+.btn-a{background:var(--amber);color:#07090f}
+.btn-a:hover{background:var(--amberL);transform:translateY(-2px);box-shadow:0 12px 38px var(--amberGlo)}
+.btn-b{background:transparent;color:var(--wht);border:1px solid var(--bdrL)}
+.btn-b:hover{border-color:var(--amber);color:var(--amber)}
+
+.home-pills{display:flex;gap:1.5rem;margin-top:3.5rem;flex-wrap:wrap;justify-content:center;
+  animation:up .6s .4s ease both}
+.pill{display:flex;align-items:center;gap:9px;font-size:.82rem;color:var(--gry)}
+.pill-icon{width:30px;height:30px;border-radius:7px;background:var(--bg3);
+  border:1px solid var(--bdrL);display:flex;align-items:center;justify-content:center;font-size:13px}
+
+/* ===== SECTION HEADER ===== */
+.sh{max-width:860px;margin:0 auto;padding:2.5rem 1.5rem 1.5rem}
+.slabel{display:inline-flex;align-items:center;gap:6px;
+  font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--amber);margin-bottom:.6rem}
+.stitle{font-family:var(--fd);font-size:clamp(1.6rem,4vw,2.4rem);
+  font-weight:700;line-height:1.15;margin-bottom:.6rem}
+.sdesc{color:var(--whtD);font-size:.92rem;font-weight:300}
+
+/* ===== ANALYSIS ===== */
+.wrap{max-width:880px;margin:0 auto;padding:0 1.5rem 3rem}
+
+.icard{background:var(--bgcard);border:1px solid var(--bdrL);border-radius:var(--r);padding:1.4rem;margin-bottom:1.2rem}
+.tabs{display:flex;gap:.4rem;margin-bottom:1rem}
+.tab{padding:.42rem .9rem;border-radius:var(--rs);border:1px solid transparent;
+  background:transparent;color:var(--gry);font-family:var(--ff);font-size:.82rem;cursor:pointer;transition:all .18s}
+.tab.on{background:var(--amberDim);border-color:var(--bdr);color:var(--amber)}
+
+textarea{width:100%;min-height:185px;background:var(--bg2);border:1px solid var(--bdrL);
+  border-radius:var(--rs);padding:1rem;color:var(--wht);font-family:var(--ff);
+  font-size:.88rem;line-height:1.75;resize:vertical;outline:none;transition:border-color .2s}
+textarea:focus{border-color:var(--amber)}
+textarea::placeholder{color:var(--gry)}
+
+.url-inp{width:100%;background:var(--bg2);border:1px solid var(--bdrL);
+  border-radius:var(--rs);padding:.8rem 1rem;color:var(--wht);
+  font-family:var(--fm);font-size:.82rem;outline:none;transition:border-color .2s}
+.url-inp:focus{border-color:var(--amber)}
+.url-inp::placeholder{color:var(--gry)}
+.url-note{margin-top:.7rem;font-size:.78rem;color:var(--gry);line-height:1.5}
+
+.ifoot{display:flex;align-items:center;justify-content:space-between;
+  margin-top:.9rem;flex-wrap:wrap;gap:.65rem}
+.cc{font-size:.78rem;color:var(--gry);font-family:var(--fm)}
+
+.btn-run{display:inline-flex;align-items:center;gap:8px;
+  padding:.72rem 1.6rem;background:var(--amber);color:#07090f;
+  border:none;border-radius:var(--rs);font-family:var(--ff);font-size:.88rem;
+  font-weight:700;cursor:pointer;transition:all .2s}
+.btn-run:hover{background:var(--amberL);transform:translateY(-1px);box-shadow:0 8px 22px var(--amberGlo)}
+.btn-run:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* error */
+.err{display:none;padding:1rem 1.2rem;background:var(--redBg);
+  border:1px solid rgba(229,57,53,.28);border-radius:var(--r);
+  color:#ff8a80;font-size:.85rem;margin-bottom:1rem;line-height:1.6}
+.err.on{display:block}
+
+/* loading */
+.ld{display:none;text-align:center;padding:3rem 1.5rem;
+  background:var(--bgcard);border:1px solid var(--bdrL);border-radius:var(--r);margin-bottom:1.2rem}
+.ld.on{display:block}
+.spin{width:46px;height:46px;border:3px solid var(--bdrL);border-top-color:var(--amber);
+  border-radius:50%;animation:spin .75s linear infinite;margin:0 auto 1.25rem}
+.ld-txt{color:var(--whtD);font-size:.88rem;margin-bottom:1rem}
+.ld-steps{display:flex;flex-direction:column;gap:.42rem;max-width:280px;margin:0 auto}
+.lstep{font-size:.78rem;color:var(--gry);transition:color .3s}
+.lstep.cur{color:var(--amber)}
+.lstep.done{color:var(--grn)}
+
+/* results */
+#res{display:none}
+#res.on{display:block}
+
+.rrow{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.rcard{background:var(--bgcard);border:1px solid var(--bdrL);border-radius:var(--r);
+  padding:1.2rem;animation:up .35s ease both}
+.rlbl{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--gry);margin-bottom:.75rem;display:flex;align-items:center;gap:5px}
+.rlbl::before{content:'';width:3px;height:10px;background:var(--amber);border-radius:2px;flex-shrink:0}
+
+/* score */
+.score-row{display:flex;align-items:center;gap:1.25rem}
+.snum{font-family:var(--fd);font-size:3.2rem;font-weight:900;line-height:1}
+.snum.hi{color:var(--grn)}.snum.md{color:var(--yel)}.snum.lo{color:var(--red)}
+.sbar-wrap{flex:1}
+.sbar{height:7px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-bottom:.45rem}
+.sbar-fill{height:100%;border-radius:4px;transition:width 1.1s ease}
+.slbl{font-size:.78rem;color:var(--whtD)}
+
+/* ai det */
+.ai-row{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.ai-badge{padding:3px 10px;border-radius:6px;font-size:.72rem;font-weight:700;white-space:nowrap}
+.ai-badge.ai{background:var(--redBg);color:var(--red);border:1px solid rgba(229,57,53,.3)}
+.ai-badge.hu{background:var(--grnBg);color:var(--grn);border:1px solid rgba(102,187,106,.3)}
+.ai-badge.un{background:var(--yelBg);color:var(--yel);border:1px solid rgba(253,216,53,.3)}
+.ai-conf{font-size:.72rem;color:var(--gry);margin-bottom:2px}
+.ai-rsn{font-size:.8rem;color:var(--whtD);line-height:1.55}
+
+/* highlighted text */
+.hltext{font-size:.88rem;line-height:1.85;color:var(--whtD)}
+.hltext p{margin-bottom:.7rem}
+.bhi{background:var(--redBg);color:#ff7070;border-radius:3px;padding:0 3px;
+  cursor:help;border-bottom:2px solid var(--red)}
+.bmd{background:var(--yelBg);color:#ffe066;border-radius:3px;padding:0 3px;
+  cursor:help;border-bottom:2px solid var(--yel)}
+
+.legend{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.9rem;
+  padding:.65rem .9rem;background:var(--bg2);border-radius:var(--rs)}
+.leg{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--gry)}
+.legdot{width:9px;height:9px;border-radius:50%}
+.legdot.hi{background:var(--red)}.legdot.md{background:var(--yel)}
+
+/* bias list */
+.blist{display:flex;flex-direction:column;gap:.7rem}
+.bitem{display:flex;align-items:flex-start;gap:9px;
+  padding:.7rem .85rem;background:var(--bg2);border-radius:var(--rs);
+  border-left:3px solid var(--red)}
+.bitem.md{border-left-color:var(--yel)}
+.bword{font-weight:600;font-size:.85rem;color:var(--wht);margin-bottom:2px}
+.btype{font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--gry);margin-bottom:2px}
+.breason{font-size:.8rem;color:var(--whtD);line-height:1.5}
+
+/* findings */
+.fcard{background:var(--bg2);border-radius:var(--rs);overflow:hidden}
+.fverdict{padding:1rem 1.2rem;border-bottom:1px solid var(--bdrL);
+  display:flex;align-items:center;gap:10px}
+.vbadge{padding:5px 12px;border-radius:7px;font-size:.78rem;font-weight:700}
+.vbadge.ak{background:var(--grnBg);color:var(--grn);border:1px solid rgba(102,187,106,.3)}
+.vbadge.vf{background:var(--yelBg);color:var(--yel);border:1px solid rgba(253,216,53,.3)}
+.vbadge.ms{background:var(--redBg);color:var(--red);border:1px solid rgba(229,57,53,.3)}
+.fbody{padding:1rem 1.2rem}
+.ftext{font-size:.875rem;line-height:1.72;color:var(--whtD)}
+
+/* full-width rcard */
+.rfull{margin-bottom:1rem}
+
+/* ===== EDUCATION ===== */
+.edu-grid{max-width:880px;margin:0 auto;padding:0 1.5rem 3rem;display:flex;flex-direction:column;gap:1.4rem}
+.ecard{background:var(--bgcard);border:1px solid var(--bdrL);border-radius:var(--r);
+  padding:2rem;position:relative;overflow:hidden}
+.ecard::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--amber)}
+.enum{font-family:var(--fd);font-size:4.5rem;font-weight:900;
+  color:rgba(245,166,35,.07);position:absolute;top:.3rem;right:1.2rem;
+  line-height:1;user-select:none;pointer-events:none}
+.eicon{font-size:2rem;margin-bottom:.85rem}
+.ecard h3{font-family:var(--fd);font-size:1.45rem;font-weight:700;margin-bottom:.85rem}
+.ecard p{color:var(--whtD);font-size:.88rem;line-height:1.72;margin-bottom:.85rem}
+.ecard p:last-child{margin-bottom:0}
+
+.ex-list{display:flex;flex-direction:column;gap:.65rem}
+.ex{padding:.8rem 1rem;background:var(--bg2);border-radius:var(--rs);border-left:3px solid var(--bdrL)}
+.ex-lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gry);margin-bottom:3px}
+.ex-txt{font-size:.855rem;color:var(--wht)}
+.ex.bias{border-left-color:var(--red)}.ex.ok{border-left-color:var(--grn)}
+.ex.note{border-left-color:var(--blu)}
+
+.tip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:.85rem;margin-top:.85rem}
+.titem{padding:.9rem 1rem;background:var(--bg2);border-radius:var(--rs);border:1px solid var(--bdrL)}
+.tnum{font-family:var(--fd);font-size:1.4rem;font-weight:700;color:var(--amber);margin-bottom:.35rem}
+.ttxt{font-size:.81rem;color:var(--whtD);line-height:1.5}
+
+/* ===== TUTORIAL ===== */
+.tut-wrap{max-width:800px;margin:0 auto;padding:0 1.5rem 3rem}
+.steps{display:flex;flex-direction:column}
+.step{display:flex;gap:1.4rem;padding-bottom:2.4rem;position:relative}
+.step:not(:last-child)::after{content:'';position:absolute;left:18px;top:38px;
+  bottom:0;width:2px;background:linear-gradient(to bottom,var(--amber),transparent)}
+.snum-w{flex-shrink:0}
+.snum-b{width:38px;height:38px;border-radius:50%;background:var(--amber);
+  color:#07090f;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:.82rem;position:relative;z-index:1}
+.scont{padding-top:6px;flex:1}
+.step-t{font-family:var(--fd);font-size:1.2rem;font-weight:700;margin-bottom:.4rem}
+.step-d{color:var(--whtD);font-size:.87rem;line-height:1.7}
+.snote{margin-top:.65rem;padding:.7rem .95rem;background:var(--amberDim);
+  border:1px solid var(--bdr);border-radius:var(--rs);font-size:.79rem;color:var(--amber);line-height:1.55}
+.stip{margin-top:.65rem;padding:.7rem .95rem;background:var(--bg3);
+  border-radius:var(--rs);font-size:.79rem;color:var(--gry);line-height:1.55}
+code{background:var(--bg3);padding:1px 5px;border-radius:4px;
+  font-family:var(--fm);font-size:.8rem;color:var(--amberL)}
+
+/* ===== ABOUT ===== */
+.abt-wrap{max-width:800px;margin:0 auto;padding:0 1.5rem 3rem}
+.abt-hero{text-align:center;padding:2.75rem 2rem;background:var(--bgcard);
+  border:1px solid var(--bdrL);border-radius:var(--r);margin-bottom:1.25rem;
+  position:relative;overflow:hidden}
+.abt-hero::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(245,166,35,.09),transparent 58%);pointer-events:none}
+.abt-logo{font-family:var(--fd);font-size:2.8rem;font-weight:900;margin-bottom:.4rem;position:relative}
+.abt-logo em{color:var(--amber);font-style:normal}
+.abt-sub{color:var(--whtD);font-size:.95rem;margin-bottom:1.25rem}
+.abt-chip{display:inline-block;padding:.45rem 1.4rem;border:1px solid var(--bdr);
+  border-radius:99px;font-size:.82rem;color:var(--amber);background:var(--amberDim)}
+
+.abt-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.acard{padding:1.4rem;background:var(--bgcard);border:1px solid var(--bdrL);border-radius:var(--r)}
+.acard h3{font-family:var(--fd);font-size:1.05rem;margin-bottom:.7rem;
+  display:flex;align-items:center;gap:7px}
+.acard p{color:var(--whtD);font-size:.85rem;line-height:1.68}
+.acard ul{list-style:none;display:flex;flex-direction:column;gap:.45rem}
+.acard ul li{color:var(--whtD);font-size:.85rem;display:flex;align-items:flex-start;gap:7px;line-height:1.55}
+.acard ul li::before{content:'▸';color:var(--amber);flex-shrink:0;margin-top:1px}
+
+/* ===== MODAL ===== */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(7,9,15,.88);
+  backdrop-filter:blur(10px);z-index:9500;align-items:center;justify-content:center;padding:1rem}
+.modal-bg.on{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);
+  padding:2rem;max-width:460px;width:100%;box-shadow:var(--sh)}
+.modal h2{font-family:var(--fd);font-size:1.45rem;margin-bottom:.4rem}
+.modal p{color:var(--whtD);font-size:.84rem;margin-bottom:1.3rem;line-height:1.6}
+.modal a{color:var(--amber)}
+.m-wrap{position:relative;margin-bottom:.75rem}
+.m-inp{width:100%;background:var(--bg3);border:1px solid var(--bdrL);
+  border-radius:var(--rs);padding:.8rem 2.8rem .8rem .9rem;
+  color:var(--wht);font-family:var(--fm);font-size:.82rem;outline:none;transition:border-color .2s}
+.m-inp:focus{border-color:var(--amber)}
+.m-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--gry);cursor:pointer;font-size:1rem}
+.m-note{font-size:.73rem;color:var(--gry);line-height:1.55;margin-bottom:.9rem}
+.m-actions{display:flex;gap:.7rem;justify-content:flex-end}
+.btn-sm{padding:.58rem 1.1rem;font-size:.83rem}
+
+/* ===== FOOTER ===== */
+footer{text-align:center;padding:1.75rem;
+  border-top:1px solid var(--bdrL);color:var(--gry);font-size:.78rem}
+footer em{color:var(--amber);font-style:normal}
+
+/* ===== ANIMATIONS ===== */
+@keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== MOBILE ===== */
+@media(max-width:768px){
+  .ham{display:flex}
+  .nav-links{position:fixed;top:62px;left:0;right:0;
+    background:rgba(7,9,15,.97);backdrop-filter:blur(20px);
+    flex-direction:column;padding:1rem;border-bottom:1px solid var(--bdr);
+    transform:translateY(-120%);transition:transform .28s ease;z-index:7999;gap:.2rem}
+  .nav-links.open{transform:translateY(0)}
+  .nav-links li{width:100%}
+  .nav-links a{width:100%}
+  .nav-key-btn{display:none}
+  .rrow{grid-template-columns:1fr}
+  .abt-grid{grid-template-columns:1fr}
+}
+@media(max-width:480px){
+  .home-pills{gap:1rem}
+  .tip-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ========== NAVBAR ========== -->
+<nav>
+  <div class="nav-brand" onclick="go('home')">
+    <div class="nav-icon">🔍</div>
+    <div class="nav-name">Lensa <em>Bahasa</em></div>
+  </div>
+
+  <button class="ham" onclick="toggleMenu()">☰</button>
+
+  <ul class="nav-links" id="navLinks">
+    <li><a onclick="go('home')" data-p="home">🏠 Home</a></li>
+    <li><a onclick="go('analisis')" data-p="analisis">🔍 Analisis</a></li>
+    <li><a onclick="go('edukasi')" data-p="edukasi">📘 Edukasi</a></li>
+    <li><a onclick="go('tutorial')" data-p="tutorial">📖 Tutorial</a></li>
+    <li><a onclick="go('tentang')" data-p="tentang">ℹ️ Tentang</a></li>
+  </ul>
+
+  <button class="nav-key-btn" onclick="openModal()">
+    <span class="dot" id="dot"></span>
+    <span id="kstat">Atur API Key</span>
+  </button>
+</nav>
+
+<!-- ========== MODAL API KEY ========== -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h2>🔑 API Key Anthropic</h2>
+    <p>Masukkan API Key Anthropic kamu untuk mengaktifkan fitur analisis AI. Key hanya disimpan di browser (sessionStorage) dan tidak dikirim ke server manapun.</p>
+    <div class="m-wrap">
+      <input type="password" class="m-inp" id="keyInp" placeholder="sk-ant-api03-...">
+      <button class="m-eye" onclick="toggleEye()">👁</button>
+    </div>
+    <p class="m-note">🔒 Key otomatis terhapus saat tab ditutup. Buat API Key gratis di <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> → API Keys → Create Key.</p>
+    <div class="m-actions">
+      <button class="btn btn-b btn-sm" onclick="closeModal()">Batal</button>
+      <button class="btn btn-a btn-sm" onclick="saveKey()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== HOME ========== -->
+<section class="pg on" id="home">
+  <div class="home-glow"></div>
+  <div class="home-grid"></div>
+  <div class="badge">✨ Didukung Kecerdasan Buatan · Anthropic Claude</div>
+  <h1 class="h1">Lensa<br><em>Bahasa</em></h1>
+  <p class="tagline">Deteksi Bias dan Framing Berita Secara Cerdas — Baca Berita dengan Lebih Kritis dan Bijak</p>
+  <div class="home-cta">
+    <button class="btn btn-a" onclick="go('analisis')">🔍 Coba Sekarang</button>
+    <button class="btn btn-b" onclick="go('edukasi')">📘 Pelajari Lebih Lanjut</button>
+  </div>
+  <div class="home-pills">
+    <div class="pill"><div class="pill-icon">🎯</div><span>Deteksi Kata Bias</span></div>
+    <div class="pill"><div class="pill-icon">📊</div><span>Skor Netralitas</span></div>
+    <div class="pill"><div class="pill-icon">🤖</div><span>Deteksi Konten AI</span></div>
+    <div class="pill"><div class="pill-icon">✅</div><span>Verifikasi Temuan</span></div>
+    <div class="pill"><div class="pill-icon">🔦</div><span>Sorotan Visual Bias</span></div>
+  </div>
+</section>
+
+<!-- ========== ANALISIS ========== -->
+<section class="pg" id="analisis">
+  <div class="sh">
+    <div class="slabel">🔍 Fitur Utama</div>
+    <h2 class="stitle">Analisis Berita</h2>
+    <p class="sdesc">Tempel teks berita dan dapatkan analisis mendalam: bias bahasa, skor netralitas, deteksi konten AI, hingga penilaian kebenaran inti berita semua berbasis AI.</p>
+  </div>
+
+  <div class="wrap">
+    <!-- Input Card -->
+    <div class="icard">
+      <div class="tabs">
+        <button class="tab on" onclick="swTab('text',this)">📝 Teks Berita</button>
+      </div>
+      <div id="t-text">
+        <textarea id="txta" placeholder="Tempel teks berita di sini... Semakin lengkap isi berita (termasuk paragraf body), semakin akurat analisisnya. Minimal 100 karakter."></textarea>
+      </div>
+      <div class="ifoot">
+        <span class="cc" id="cc">0 karakter</span>
+        <button class="btn-run" onclick="runAnalysis()" id="runBtn">⚡ Analisis Sekarang</button>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div class="err" id="errBox"></div>
+
+    <!-- Loading -->
+    <div class="ld" id="ldBox">
+      <div class="spin"></div>
+      <p class="ld-txt">AI sedang menganalisis berita kamu...</p>
+      <div class="ld-steps">
+        <div class="lstep" id="ls1">📰 Membaca dan memahami konten...</div>
+        <div class="lstep" id="ls2">🧠 Mendeteksi kata-kata bias...</div>
+        <div class="lstep" id="ls3">📊 Menghitung skor netralitas...</div>
+        <div class="lstep" id="ls4">🤖 Memeriksa pola penulisan AI...</div>
+        <div class="lstep" id="ls5">✅ Menyusun temuan & rekomendasi...</div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="res">
+      <!-- ROW 1: Topik + Skor -->
+      <div class="rrow">
+        <div class="rcard">
+          <div class="rlbl">📰 Berita Ini Membahas Tentang</div>
+          <p style="font-size:.9rem;line-height:1.65;color:var(--wht)" id="r-topik"></p>
+        </div>
+        <div class="rcard">
+          <div class="rlbl">📊 Skor Netralitas</div>
+          <div class="score-row">
+            <div class="snum" id="r-snum"></div>
+            <div class="sbar-wrap">
+              <div class="sbar"><div class="sbar-fill" id="r-sfill" style="width:0%"></div></div>
+              <div class="slbl" id="r-slbl"></div>
+            </div>
+          </div>
+          <p style="font-size:.8rem;color:var(--whtD);margin-top:.7rem;line-height:1.55" id="r-sexp"></p>
+        </div>
+      </div>
+
+      <!-- ROW 2: AI Det + Findings -->
+      <div class="rrow">
+        <div class="rcard">
+          <div class="rlbl">🤖 Deteksi Konten AI</div>
+          <div class="ai-row">
+            <div id="r-aibadge"></div>
+            <div>
+              <div class="ai-conf" id="r-aiconf"></div>
+              <div class="ai-rsn" id="r-airsn"></div>
+            </div>
+          </div>
+        </div>
+        <div class="rcard">
+          <div class="rlbl">🔎 Temuan — Kebenaran Inti Berita</div>
+          <div class="fcard">
+            <div class="fverdict">
+              <span style="font-size:.78rem;color:var(--gry)">Verdict:</span>
+              <div id="r-vbadge"></div>
+            </div>
+            <div class="fbody">
+              <p class="ftext" id="r-ftext"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Highlighted Text -->
+      <div class="rcard rfull">
+        <div class="rlbl">🔦 Teks Asli dengan Sorotan Bias</div>
+        <div class="legend">
+          <div class="leg"><div class="legdot hi"></div> Bias Tinggi (merah)</div>
+          <div class="leg"><div class="legdot md"></div> Bias Sedang (kuning)</div>
+        </div>
+        <div class="hltext" id="r-hl"></div>
+      </div>
+
+      <!-- Bias Words -->
+      <div class="rcard rfull">
+        <div class="rlbl">⚠️ Daftar Kata &amp; Frasa Berindikasi Bias</div>
+        <div class="blist" id="r-blist"></div>
+      </div>
+
+      <!-- Summary -->
+      <div class="rcard rfull" style="margin-bottom:2rem">
+        <div class="rlbl">📝 Ringkasan Analisis Keseluruhan</div>
+        <p style="font-size:.875rem;line-height:1.72;color:var(--whtD)" id="r-sum"></p>
+      </div>
+    </div><!-- /res -->
+  </div><!-- /wrap -->
+</section>
+
+<!-- ========== EDUKASI ========== -->
+<section class="pg" id="edukasi">
+  <div class="sh">
+    <div class="slabel">📘 Literasi Media</div>
+    <h2 class="stitle">Edukasi Media</h2>
+    <p class="sdesc">Pahami konsep bias, framing, dan netralitas untuk menjadi pembaca berita yang lebih kritis dan bijak.</p>
+  </div>
+
+  <div class="edu-grid">
+
+    <!-- 1 -->
+    <div class="ecard">
+      <div class="enum">01</div>
+      <div class="eicon">⚖️</div>
+      <h3>Apa itu Bias dalam Berita?</h3>
+      <p>Bias dalam berita adalah <strong>kecenderungan menyajikan informasi secara tidak seimbang</strong> — memihak sudut pandang tertentu atau mengabaikan perspektif lain. Bias tidak selalu disengaja; bisa muncul dari pilihan kata, struktur kalimat, atau informasi yang dihilangkan. Bahkan judul sebuah berita bisa mengandung bias yang kuat.</p>
+      <div class="ex-list">
+        <div class="ex bias">
+          <div class="ex-lbl">❌ Mengandung Bias Emosional &amp; Stigmatisasi</div>
+          <div class="ex-txt">"Kelompok <strong>radikal</strong> itu <strong>mengamuk</strong> dan <strong>merusak</strong> ketertiban dengan aksi <strong>provokatif</strong> mereka kemarin."</div>
+        </div>
+        <div class="ex ok">
+          <div class="ex-lbl">✅ Lebih Netral &amp; Faktual</div>
+          <div class="ex-txt">"Kelompok tersebut menggelar aksi demonstrasi yang berakhir dengan insiden kerusuhan di sejumlah titik kemarin."</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 -->
+    <div class="ecard">
+      <div class="enum">02</div>
+      <div class="eicon">🎯</div>
+      <h3>Apa itu Berita yang Netral?</h3>
+      <p>Berita netral adalah laporan yang <strong>menyajikan fakta tanpa memihak</strong> salah satu pihak. Netralitas bukan berarti tidak ada pendirian — melainkan menghadirkan fakta secara adil, berimbang, dan membiarkan pembaca menyimpulkan sendiri. Berita netral juga tidak berarti memberi porsi sama pada semua klaim tanpa memverifikasinya.</p>
+      <p><strong style="color:var(--amber)">Ciri-ciri berita yang netral:</strong></p>
+      <div class="tip-grid">
+        <div class="titem"><div class="tnum">📋</div><div class="ttxt">Berbasis fakta yang dapat diverifikasi</div></div>
+        <div class="titem"><div class="tnum">🎤</div><div class="ttxt">Mengutip narasumber dari berbagai pihak</div></div>
+        <div class="titem"><div class="tnum">📝</div><div class="ttxt">Menggunakan kata deskriptif, bukan evaluatif</div></div>
+        <div class="titem"><div class="tnum">🔄</div><div class="ttxt">Menyajikan konteks yang lengkap dan adil</div></div>
+        <div class="titem"><div class="tnum">🔗</div><div class="ttxt">Memisahkan fakta dari opini dengan jelas</div></div>
+        <div class="titem"><div class="tnum">📌</div><div class="ttxt">Tidak menghilangkan informasi penting yang relevan</div></div>
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="ecard">
+      <div class="enum">03</div>
+      <div class="eicon">🖼️</div>
+      <h3>Apa itu Framing?</h3>
+      <p>Framing adalah cara media <strong>"membingkai"</strong> sebuah isu — memilih aspek mana yang ditonjolkan dan mana yang disembunyikan. Seperti sebuah foto, framing menentukan apa yang "masuk gambar" dan apa yang dipotong. Dua media bisa melaporkan kejadian yang sama dengan framing sangat berbeda, menghasilkan kesan yang jauh berbeda di benak pembaca.</p>
+      <div class="ex-list">
+        <div class="ex bias">
+          <div class="ex-lbl">Framing A — Perspektif Pemerintah</div>
+          <div class="ex-txt">"Pemerintah terpaksa menaikkan harga BBM demi menjaga stabilitas APBN di tengah tekanan ekonomi global yang belum mereda."</div>
+        </div>
+        <div class="ex note">
+          <div class="ex-lbl">Framing B — Perspektif Masyarakat</div>
+          <div class="ex-txt">"Masyarakat kecil kembali menanggung beban akibat kenaikan harga BBM yang membuat pengeluaran sehari-hari semakin berat."</div>
+        </div>
+      </div>
+      <p style="margin-top:.85rem">Keduanya bisa jadi benar secara faktual — tapi framing yang berbeda menciptakan empati yang berbeda pula.</p>
+    </div>
+
+    <!-- 4 -->
+    <div class="ecard">
+      <div class="enum">04</div>
+      <div class="eicon">🔎</div>
+      <h3>Jenis-Jenis Bias Bahasa</h3>
+      <p>Bias bahasa muncul dalam berbagai bentuk. Berikut yang paling sering ditemukan dalam pemberitaan media Indonesia:</p>
+      <div class="ex-list">
+        <div class="ex bias">
+          <div class="ex-lbl">😤 Bias Emosional</div>
+          <div class="ex-txt">Kata-kata memancing emosi: "mengerikan", "tragis", "luar biasa", "amukan", "mengobrak-abrik"</div>
+        </div>
+        <div class="ex" style="border-left-color:var(--yel)">
+          <div class="ex-lbl">🏛️ Bias Politis</div>
+          <div class="ex-txt">Pilihan kata mencerminkan keberpihakan politik: "rezim", "pejuang demokrasi", "antek asing"</div>
+        </div>
+        <div class="ex note">
+          <div class="ex-lbl">📢 Bias Satu Sisi</div>
+          <div class="ex-txt">Hanya mengutip narasumber dari satu pihak, tanpa memberi ruang pihak lain merespons</div>
+        </div>
+        <div class="ex ok">
+          <div class="ex-lbl">🌊 Hiperbola &amp; Dramatisasi</div>
+          <div class="ex-txt">Melebih-lebihkan fakta: "ribuan warga" saat yang hadir hanya puluhan orang</div>
+        </div>
+        <div class="ex" style="border-left-color:var(--amber)">
+          <div class="ex-lbl">🎭 Stigmatisasi &amp; Labeling</div>
+          <div class="ex-txt">Memberi label negatif: "kelompok radikal", "geng kriminal", tanpa bukti yang cukup</div>
+        </div>
+        <div class="ex" style="border-left-color:#ab47bc">
+          <div class="ex-lbl">🌿 Eufemisme Menyesatkan</div>
+          <div class="ex-txt">Memperlunak fakta keras: "pengamanan warga" untuk menggambarkan penangkapan paksa</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5 -->
+    <div class="ecard">
+      <div class="enum">05</div>
+      <div class="eicon">💡</div>
+      <h3>Tips Membaca Berita Secara Kritis</h3>
+      <p>Jadilah pembaca aktif yang tidak mudah terpengaruh bias media. Gunakan checklist ini setiap kali membaca berita:</p>
+      <div class="tip-grid">
+        <div class="titem"><div class="tnum">1️⃣</div><div class="ttxt">Baca dari <strong>beberapa sumber</strong> berbeda sebelum percaya</div></div>
+        <div class="titem"><div class="tnum">2️⃣</div><div class="ttxt">Perhatikan <strong>pilihan kata</strong> — emosional atau faktual?</div></div>
+        <div class="titem"><div class="tnum">3️⃣</div><div class="ttxt">Tanya: <strong>siapa yang diuntungkan</strong> dari framing berita ini?</div></div>
+        <div class="titem"><div class="tnum">4️⃣</div><div class="ttxt">Cek <strong>sumber kutipan</strong> — apakah pihak yang relevan diwakili?</div></div>
+        <div class="titem"><div class="tnum">5️⃣</div><div class="ttxt">Bedakan <strong>fakta vs opini</strong> di setiap paragraf</div></div>
+        <div class="titem"><div class="tnum">6️⃣</div><div class="ttxt">Gunakan <strong>Lensa Bahasa</strong> untuk analisis otomatis! 🔍</div></div>
+      </div>
+    </div>
+
+  </div><!-- /edu-grid -->
+</section>
+
+<!-- ========== TUTORIAL ========== -->
+<section class="pg" id="tutorial">
+  <div class="sh">
+    <div class="slabel">📖 Panduan</div>
+    <h2 class="stitle">Tutorial Penggunaan</h2>
+    <p class="sdesc">Ikuti 7 langkah mudah ini untuk menganalisis berita dengan Lensa Bahasa secara optimal.</p>
+  </div>
+
+  <div class="tut-wrap">
+    <div class="steps">
+
+      <div class="step">
+        <div class="snum-w"><div class="snum-b">1</div></div>
+        <div class="scont">
+          <h3 class="step-t">Dapatkan API Key Anthropic (Gratis)</h3>
+          <p class="step-d">Lensa Bahasa menggunakan AI Claude dari Anthropic untuk analisis mendalam. Kamu perlu API Key gratis yang didapat dari konsol Anthropic.</p>
+          <div class="snote">🔑 Cara dapat API Key: Buka <strong>console.anthropic.com</strong> → Daftar/Login → Klik menu <strong>API Keys</strong> → <strong>Create Key</strong> → Salin key yang muncul.</div>
+          <div class="stip">💡 API Key berbentuk: <code>sk-ant-api03-xxxxxxxxxxxxxxxx...</code></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="snum-w"><div class="snum-b">2</div></div>
+        <div class="scont">
+          <h3 class="step-t">Masukkan API Key ke Lensa Bahasa</h3>
+          <p class="step-d">Klik tombol <strong>"Atur API Key"</strong> di pojok kanan atas navbar (tampilan desktop). Tempel API Key kamu, lalu klik <strong>Simpan</strong>. Indikator bulat di sebelah tombol akan berubah <span style="color:var(--grn)">hijau ✅</span> jika berhasil.</p>
+          <div class="snote">🔒 API Key hanya tersimpan di sessionStorage browser. Tidak ada data yang dikirim ke server kami — semua request langsung ke Anthropic API.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="snum-w"><div class="snum-b">3</div></div>
+        <div class="scont">
+          <h3 class="step-t">Cari Berita yang Ingin Dianalisis</h3>
+          <p class="step-d">Buka artikel berita yang ingin kamu analisis dari sumber mana saja — Kompas, Detik, CNN Indonesia, Tempo, dsb. Semakin panjang dan lengkap teks beritanya, semakin akurat analisisnya.</p>
+          <div class="stip">💡 Tips: Salin seluruh isi artikel (bukan hanya judul) untuk hasil analisis terbaik. Minimal 100 karakter diperlukan.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="snum-w"><div class="snum-b">4</div></div>
+        <div class="scont">
+          <h3 class="step-t">Tempel Teks di Halaman Analisis</h3>
+          <p class="step-d">Klik menu <strong>🔍 Analisis</strong> di navbar. Klik kotak teks besar, lalu tempel teks berita kamu (<kbd>Ctrl+V</kbd> atau <kbd>Cmd+V</kbd>). Penghitung karakter di bawah akan menampilkan jumlah karakter yang sudah dimasukkan.</p>
+          <div class="stip">💡 Kamu juga bisa mengetik langsung di kotak input jika ingin menganalisis teks manual.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="snum-w"><div class="snum-b">5</div></div>
+        <div class="scont">
+          <h3 class="step-t">Klik "⚡ Analisis Sekarang"</h3>
+          <p class="step-d">Klik tombol oranye <strong>⚡ Analisis Sekarang</strong>. Loading spinner akan muncul sementara AI menganalisis teks kamu. Proses biasanya membutuhkan <strong>5–20 detik</strong> tergantung panjang berita.</p>
+          <div class="snote">⏳ Jangan refresh atau tutup halaman selama proses analisis berlangsung.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="snum-w"><div class="snum-b">6</div></div>
+        <div class="scont">
+          <h3 class="step-t">Baca dan Pahami Hasil Analisis</h3>
+          <p class="step-d">Hasil analisis muncul dalam beberapa kartu di bawah kolom input:</p>
+          <div style="display:flex;flex-direction:column;gap:.45rem;margin-top:.6rem">
+            <div class="stip">📰 <strong>Membahas Tentang</strong> — ringkasan topik utama berita</div>
+            <div class="stip">📊 <strong>Skor Netralitas</strong> — 0–100 (makin tinggi = makin netral) beserta penjelasan</div>
+            <div class="stip">🤖 <strong>Deteksi AI</strong> — apakah berita kemungkinan ditulis manusia atau AI</div>
+            <div class="stip">🔦 <strong>Teks Sorotan</strong> — kata bias disorot <span style="color:var(--red)">merah (tinggi)</span> &amp; <span style="color:var(--yel)">kuning (sedang)</span></div>
+            <div class="stip">⚠️ <strong>Daftar Bias</strong> — tiap kata bias dijelaskan jenis dan alasannya</div>
+            <div class="stip">🔎 <strong>Temuan</strong> — penilaian apakah inti berita akurat, perlu diverifikasi, atau berpotensi menyesatkan</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="snum-w"><div class="snum-b">7</div></div>
+        <div class="scont">
+          <h3 class="step-t">Analisis Berita Berikutnya &amp; Terus Belajar</h3>
+          <p class="step-d">Untuk menganalisis berita lain, hapus teks sebelumnya, tempel teks baru, dan klik Analisis lagi. API Key tidak perlu dimasukkan ulang selama tab yang sama masih terbuka.</p>
+          <div class="snote">🎓 Setelah rutin menganalisis, kamu akan mulai terlatih mengenali bias secara mandiri! Kunjungi halaman <strong>📘 Edukasi</strong> untuk memperdalam pemahamanmu.</div>
+        </div>
+      </div>
+
+    </div><!-- /steps -->
+  </div>
+</section>
+
+<!-- ========== TENTANG ========== -->
+<section class="pg" id="tentang">
+  <div class="sh">
+    <div class="slabel">ℹ️ Tentang Proyek</div>
+    <h2 class="stitle">Tentang Kami</h2>
+    <p class="sdesc">Lensa Bahasa adalah proyek literasi media berbasis AI untuk generasi pelajar yang kritis.</p>
+  </div>
+
+  <div class="abt-wrap">
+    <div class="abt-hero">
+      <div class="abt-logo">Lensa <em>Bahasa</em></div>
+      <p class="abt-sub">"Deteksi Bias dan Framing Berita Secara Cerdas"</p>
+      <div class="abt-chip">🎓 [Nama Kelompok Kamu]</div>
+      <div class="abt-chip">🎓 [Nama Kelompok Kamu]</div>
+      <div class="abt-chip">🎓 [Nama Kelompok Kamu]</div>
+      <div class="abt-chip">🎓 [Nama Kelompok Kamu]</div>
+    </div>
+
+    <div class="abt-grid">
+      <div class="acard">
+        <h3>🎯 Tujuan Proyek</h3>
+        <ul>
+          <li>Membantu masyarakat mengenali bias dalam pemberitaan media massa</li>
+          <li>Meningkatkan literasi digital dan kemampuan berpikir kritis</li>
+          <li>Memanfaatkan teknologi AI untuk edukasi media yang lebih luas</li>
+          <li>Mendorong konsumsi berita yang lebih bijak dan bertanggung jawab</li>
+          <li>Membangun budaya membaca berita secara analitis di kalangan pelajar</li>
+        </ul>
+      </div>
+
+      <div class="acard">
+        <h3>🛠️ Teknologi yang Digunakan</h3>
+        <ul>
+          <li>HTML, CSS, JavaScript — frontend statis 100%</li>
+          <li>Anthropic Claude AI — analisis bias berbasis LLM</li>
+          <li>GitHub Pages — hosting gratis tanpa server</li>
+          <li>Tidak ada backend — privacy-first, API Key di browser</li>
+          <li>Zero tracking, zero database, zero biaya hosting</li>
+        </ul>
+      </div>
+
+      <div class="acard">
+        <h3>👥 Tim Pengembang</h3>
+        <ul>
+          <li>[Nama Anggota 1] — Project Lead &amp; Frontend</li>
+          <li>[Nama Anggota 2] — AI Integration &amp; Logic</li>
+          <li>[Nama Anggota 3] — Content &amp; Research</li>
+          <li>[Nama Anggota 4] — UI/UX Design</li>
+          <li>[Nama Anggota 5] — Dokumentasi &amp; Testing</li>
+        </ul>
+      </div>
+
+      <div class="acard">
+        <h3>📌 Latar Belakang</h3>
+        <p>Di era banjir informasi, kemampuan membedakan berita netral dan bermuatan bias menjadi keterampilan kritis yang wajib dimiliki. Lensa Bahasa hadir sebagai solusi berbasis AI yang membantu siapa saja — tanpa latar belakang akademis jurnalistik sekalipun — untuk membaca berita secara lebih cerdas dan bertanggung jawab.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== FOOTER ========== -->
+<footer>
+  <p>© 2026 <em>Lensa Bahasa</em> — Dibuat dengan ❤️ untuk literasi media Indonesia yang lebih baik</p>
+  <p style="margin-top:.4rem">Powered by <em>Anthropic Claude AI</em> · Hosted on <em>GitHub Pages</em></p>
+</footer>
+
+<!-- ========== SCRIPTS ========== -->
+<script>
+// ---- NAV ----
+function go(page) {
+  document.querySelectorAll('.pg').forEach(s => s.classList.remove('on'));
+  const target = document.getElementById(page);
+  if (target) target.classList.add('on');
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    a.classList.toggle('on', a.dataset.p === page);
+  });
+  window.scrollTo(0, 0);
+  document.getElementById('navLinks').classList.remove('open');
+}
+
+function toggleMenu() {
+  document.getElementById('navLinks').classList.toggle('open');
+}
+
+// ---- API KEY ----
+let apiKey = sessionStorage.getItem('lb_key') || '';
+
+function refreshKeyUI() {
+  const dot = document.getElementById('dot');
+  const stat = document.getElementById('kstat');
+  if (apiKey) { dot.classList.add('ok'); stat.textContent = 'API Key ✓'; }
+  else         { dot.classList.remove('ok'); stat.textContent = 'Atur API Key'; }
+}
+
+function openModal() {
+  document.getElementById('modalBg').classList.add('on');
+  document.getElementById('keyInp').value = apiKey;
+}
+function closeModal() { document.getElementById('modalBg').classList.remove('on'); }
+function toggleEye() {
+  const i = document.getElementById('keyInp');
+  i.type = i.type === 'password' ? 'text' : 'password';
+}
+function saveKey() {
+  const v = document.getElementById('keyInp').value.trim();
+  if (!v) { alert('Masukkan API Key terlebih dahulu!'); return; }
+  apiKey = v;
+  sessionStorage.setItem('lb_key', v);
+  refreshKeyUI();
+  closeModal();
+}
+
+document.getElementById('modalBg').addEventListener('click', e => { if (e.target.id === 'modalBg') closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+refreshKeyUI();
+
+// ---- TABS ----
+function swTab(t, btn) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('t-text').style.display = t === 'text' ? '' : 'none';
+  document.getElementById('t-url').style.display  = t === 'url'  ? '' : 'none';
+}
+
+// ---- CHAR COUNT ----
+document.getElementById('txta').addEventListener('input', function() {
+  document.getElementById('cc').textContent = this.value.length + ' karakter';
+});
+
+// ---- HELPERS ----
+function h(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+function re(s) { return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+
+function showErr(msg) {
+  const el = document.getElementById('errBox');
+  el.innerHTML = msg;
+  el.classList.add('on');
+}
+function hideErr() { document.getElementById('errBox').classList.remove('on'); }
+
+// ---- LOADING STEPS ANIMATION ----
+let ldTimer;
+function startLoadingAnim() {
+  const ids = ['ls1','ls2','ls3','ls4','ls5'];
+  ids.forEach(id => document.getElementById(id).className = 'lstep');
+  let i = 0;
+  ldTimer = setInterval(() => {
+    if (i > 0) document.getElementById(ids[i-1]).className = 'lstep done';
+    if (i < ids.length) { document.getElementById(ids[i]).className = 'lstep cur'; i++; }
+    else clearInterval(ldTimer);
+  }, 1600);
+}
+function stopLoadingAnim() { clearInterval(ldTimer); }
+
+// ---- HIGHLIGHT TEXT ----
+function buildHighlight(text, biasWords) {
+  if (!biasWords || biasWords.length === 0) {
+    return text.split('\n').filter(l => l.trim())
+      .map(l => `<p>${h(l)}</p>`).join('');
+  }
+
+  let out = h(text);
+
+  // Sort longest first to prevent partial overwrites
+  const sorted = [...biasWords].sort((a,b) => (b.kata||'').length - (a.kata||'').length);
+  const used = new Set();
+
+  sorted.forEach(w => {
+    if (!w.kata) return;
+    const esc = h(w.kata);
+    if (used.has(esc.toLowerCase())) return;
+    used.add(esc.toLowerCase());
+
+    const cls  = (w.intensitas === 'sedang') ? 'bmd' : 'bhi';
+    const tip  = h(w.alasan || '');
+    const rgx  = new RegExp(re(esc), 'gi');
+    out = out.replace(rgx, m => `<span class="${cls}" title="${tip}">${m}</span>`);
+  });
+
+  return out.split('\n').filter(l => l.trim()).map(l => `<p>${l}</p>`).join('');
+}
+
+// ---- MAIN ANALYSIS ----
+async function runAnalysis() {
+  const text = document.getElementById('txta').value.trim();
+
+  // Validations
+  if (!apiKey) {
+    showErr('⚠️ <strong>API Key belum diatur.</strong> Klik tombol "Atur API Key" di pojok kanan atas untuk memasukkan Anthropic API Key kamu.');
+    openModal();
+    return;
+  }
+  if (text.length < 100) {
+    showErr('⚠️ Teks terlalu pendek. Masukkan minimal <strong>100 karakter</strong> untuk analisis yang akurat (teks sekarang: ' + text.length + ' karakter).');
+    return;
+  }
+
+  // Reset UI
+  hideErr();
+  document.getElementById('res').classList.remove('on');
+  document.getElementById('res').style.display = 'none';
+  document.getElementById('ldBox').classList.add('on');
+  document.getElementById('runBtn').disabled = true;
+  startLoadingAnim();
+
+  const prompt = `Kamu adalah analis berita profesional senior yang ahli dalam mendeteksi bias bahasa, framing media, kualitas jurnalistik, dan identifikasi konten buatan AI.
+
+Analisis teks berita berikut secara mendalam dan kembalikan hasilnya HANYA dalam format JSON valid. TIDAK BOLEH ada teks lain di luar JSON — tidak ada preamble, tidak ada markdown, tidak ada komentar.
+
+TEKS BERITA YANG DIANALISIS:
+"""
+${text}
+"""
+
+Kembalikan JSON dengan struktur PERSIS ini (semua field wajib diisi, tidak boleh null):
+{
+  "topik": "Jelaskan dalam 2-4 kalimat: berita ini membahas tentang apa? Siapa yang terlibat? Apa yang terjadi? Kapan dan di mana?",
+  "is_ai_generated": {
+    "status": true,
+    "confidence": "tinggi",
+    "alasan": "Penjelasan 1-2 kalimat spesifik mengapa teks ini terindikasi ditulis oleh AI atau manusia — perhatikan pola kalimat, variasi leksik, gaya penulisan, natural flow vs mechanical structure"
+  },
+  "kata_bias": [
+    {
+      "kata": "kata atau frasa persis yang ada di teks (verbatim, case-sensitive)",
+      "jenis": "emosional",
+      "intensitas": "tinggi",
+      "alasan": "penjelasan spesifik kenapa kata/frasa ini bias"
+    }
+  ],
+  "skor_netralitas": 72,
+  "penjelasan_skor": "Penjelasan 2-3 kalimat mengapa berita ini mendapat skor tersebut — apa yang membuat ia netral atau tidak netral?",
+  "temuan": {
+    "verdict": "Perlu Verifikasi",
+    "penjelasan": "Analisis 3-5 kalimat tentang apakah inti dan klaim utama berita ini terdengar kredibel berdasarkan: logika argumentasi, keberadaan sumber yang dikutip, konsistensi narasi, tanda-tanda sensasionalisme atau manipulasi, dan kualitas penyajian fakta secara keseluruhan."
+  },
+  "ringkasan_bias": "Ringkasan komprehensif 3-4 kalimat tentang pola bias keseluruhan, siapa yang tampak diuntungkan/dirugikan dari framing ini, dan saran kritis untuk pembaca."
+}
+
+ATURAN PENTING:
+- "kata_bias[].kata" HARUS kata/frasa yang benar-benar ADA di teks (verbatim/persis sama, termasuk kapitalisasi aslinya)
+- Jika tidak ada bias terdeteksi, kata_bias = [] (array kosong)
+- is_ai_generated.status: true = kemungkinan ditulis AI, false = kemungkinan ditulis manusia
+- is_ai_generated.confidence: hanya boleh "tinggi", "sedang", atau "rendah"
+- kata_bias[].jenis: hanya boleh salah satu dari: "emosional", "politis", "satu_sisi", "hiperbola", "eufemisme", "stigmatisasi"
+- kata_bias[].intensitas: hanya boleh "tinggi" atau "sedang"
+- temuan.verdict: hanya boleh salah satu dari: "Kemungkinan Akurat", "Perlu Verifikasi", "Berpotensi Menyesatkan"
+- skor_netralitas: angka bulat 0-100 (80-100=sangat netral, 60-79=cukup netral, 40-59=ada bias moderat, 20-39=bias tinggi, 0-19=sangat bias)
+- Semua teks penjelasan dalam Bahasa Indonesia`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2500,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!resp.ok) {
+      let errMsg = `HTTP ${resp.status}`;
+      try {
+        const eData = await resp.json();
+        errMsg = eData.error?.message || errMsg;
+        if (resp.status === 401) errMsg = 'API Key tidak valid atau sudah kadaluarsa. Silakan cek kembali API Key kamu.';
+        if (resp.status === 429) errMsg = 'Terlalu banyak request. Tunggu beberapa saat lalu coba lagi.';
+      } catch(e) {}
+      throw new Error(errMsg);
+    }
+
+    const data = await resp.json();
+    const raw = data.content?.[0]?.text || '';
+
+    // Parse JSON — strip possible markdown fences
+    let result;
+    try {
+      const clean = raw.replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,'').trim();
+      result = JSON.parse(clean);
+    } catch(e) {
+      // Try to extract JSON from response
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (match) {
+        try { result = JSON.parse(match[0]); }
+        catch(e2) { throw new Error('Respons AI tidak dapat diparsing. Coba analisis ulang.'); }
+      } else {
+        throw new Error('Format respons AI tidak sesuai. Coba analisis ulang.');
+      }
+    }
+
+    renderResults(result, text);
+
+  } catch(err) {
+    showErr('❌ <strong>Analisis gagal:</strong> ' + h(err.message || 'Terjadi kesalahan tidak dikenal. Periksa koneksi internet dan API Key kamu.'));
+  } finally {
+    stopLoadingAnim();
+    document.getElementById('ldBox').classList.remove('on');
+    document.getElementById('runBtn').disabled = false;
+  }
+}
+
+// ---- RENDER RESULTS ----
+function renderResults(r, originalText) {
+  // Topik
+  document.getElementById('r-topik').textContent = r.topik || '—';
+
+  // Skor
+  const score = Math.max(0, Math.min(100, Number(r.skor_netralitas) || 0));
+  const snum = document.getElementById('r-snum');
+  snum.textContent = score + '%';
+  snum.className = 'snum ' + (score >= 70 ? 'hi' : score >= 45 ? 'md' : 'lo');
+
+  const fill = document.getElementById('r-sfill');
+  fill.style.width = '0%';
+  fill.style.background = score >= 70 ? 'var(--grn)' : score >= 45 ? 'var(--yel)' : 'var(--red)';
+  setTimeout(() => fill.style.width = score + '%', 120);
+
+  const lbl = score >= 85 ? 'Sangat Netral 🟢'
+            : score >= 70 ? 'Cukup Netral 🟡'
+            : score >= 50 ? 'Bias Moderat 🟠'
+            : score >= 30 ? 'Bias Tinggi 🔴'
+            : 'Sangat Bias 🔴';
+  document.getElementById('r-slbl').textContent = lbl;
+  document.getElementById('r-sexp').textContent = r.penjelasan_skor || '';
+
+  // AI detection
+  const ai = r.is_ai_generated || {};
+  const isAI = ai.status === true;
+  const conf = ai.confidence || 'rendah';
+  const aiBadge = document.getElementById('r-aibadge');
+  let aiCls, aiTxt;
+  if (isAI) { aiCls = 'ai'; aiTxt = '🤖 Kemungkinan Ditulis AI'; }
+  else       { aiCls = 'hu'; aiTxt = '✍️ Kemungkinan Ditulis Manusia'; }
+  aiBadge.innerHTML = `<span class="ai-badge ${aiCls}">${aiTxt}</span>`;
+  document.getElementById('r-aiconf').textContent = 'Tingkat keyakinan: ' + conf;
+  document.getElementById('r-airsn').textContent = ai.alasan || '';
+
+  // Findings
+  const findings = r.temuan || {};
+  const v = findings.verdict || 'Perlu Verifikasi';
+  const vCls = v === 'Kemungkinan Akurat' ? 'ak' : v === 'Perlu Verifikasi' ? 'vf' : 'ms';
+  const vIcon = v === 'Kemungkinan Akurat' ? '✅' : v === 'Perlu Verifikasi' ? '⚠️' : '❌';
+  document.getElementById('r-vbadge').innerHTML = `<span class="vbadge ${vCls}">${vIcon} ${h(v)}</span>`;
+  document.getElementById('r-ftext').textContent = findings.penjelasan || '—';
+
+  // Highlighted text
+  const biasWords = Array.isArray(r.kata_bias) ? r.kata_bias : [];
+  document.getElementById('r-hl').innerHTML = buildHighlight(originalText, biasWords);
+
+  // Bias list
+  const blistEl = document.getElementById('r-blist');
+  if (biasWords.length === 0) {
+    blistEl.innerHTML = '<p style="color:var(--grn);font-size:.875rem">✅ Tidak ada kata atau frasa berindikasi bias yang terdeteksi dalam teks ini.</p>';
+  } else {
+    blistEl.innerHTML = biasWords.map(w => {
+      const cls = (w.intensitas === 'sedang') ? 'bitem md' : 'bitem';
+      return `<div class="${cls}">
+        <div style="flex:1">
+          <div class="bword">"${h(w.kata || '')}"</div>
+          <div class="btype">${h(w.jenis || '')} · intensitas: ${h(w.intensitas || 'tinggi')}</div>
+          <div class="breason">${h(w.alasan || '')}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Summary
+  document.getElementById('r-sum').textContent = r.ringkasan_bias || '—';
+
+  // Show results
+  const resEl = document.getElementById('res');
+  resEl.style.display = 'block';
+  setTimeout(() => {
+    resEl.classList.add('on');
+    resEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 80);
+}
+</script>
+</body>
+</html>
